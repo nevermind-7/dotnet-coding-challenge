@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.6.33513.286
+# Visual Studio Version 18
+VisualStudioVersion = 18.12.12412.261 stable
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7F26A7DC-6335-4CDE-A13C-D7905723C57E}"
 EndProject
@@ -49,8 +49,16 @@ Global
 		{71866096-4B4E-4120-9B39-6445FA43D298}.Release|x86.Build.0 = Release|Any CPU
 		{A1B2C3D4-1111-1111-1111-111111111111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A1B2C3D4-1111-1111-1111-111111111111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Debug|x64.Build.0 = Debug|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Debug|x86.Build.0 = Debug|Any CPU
 		{A1B2C3D4-1111-1111-1111-111111111111}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-1111-1111-1111-111111111111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Release|x64.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Release|x64.Build.0 = Release|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Release|x86.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-1111-1111-1111-111111111111}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
