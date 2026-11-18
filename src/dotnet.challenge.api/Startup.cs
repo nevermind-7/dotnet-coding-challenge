@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using dotnet.challenge.api.Background;
 using dotnet.challenge.api.Services;
 using dotnet.challenge.data.Cache;
@@ -17,7 +18,10 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(o =>
+                // The spec defines Reservation.Status as a string ("Active", "Confirmed", ...).
+                o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
@@ -25,6 +29,8 @@ public class Startup
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Inventory Reservations API", Version = "v1" });
         });
 
+        // Registered explicitly so tests can swap in a FakeTimeProvider (see ApiTests).
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ISimpleObjectCache<Guid, Product>, SimpleObjectCache<Guid, Product>>();
         services.AddSingleton<ISimpleObjectCache<Guid, Reservation>, SimpleObjectCache<Guid, Reservation>>();
         services.AddSingleton<IInventoryService, InventoryService>();
