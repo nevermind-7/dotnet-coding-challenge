@@ -1,24 +1,19 @@
 namespace dotnet.challenge.data.Entities;
 
-public enum ReservationStatus
+/// <summary>
+/// Immutable snapshot of a reservation. State transitions store a new instance.
+/// </summary>
+public sealed record Reservation
 {
-    Active,
-    Confirmed,
-    Released,
-    Expired
-}
+    public Guid Id { get; init; }
 
-public class Reservation
-{
-    public Guid Id { get; set; }
+    public Guid ProductId { get; init; }
 
-    public Guid ProductId { get; set; }
+    public int Quantity { get; init; }
 
-    public int Quantity { get; set; }
+    public DateTime CreatedAt { get; init; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; init; }
 
-    public DateTime ExpiresAt { get; set; }
-
-    public ReservationStatus Status { get; set; }
+    public ReservationStatus Status { get; init; }
 }
