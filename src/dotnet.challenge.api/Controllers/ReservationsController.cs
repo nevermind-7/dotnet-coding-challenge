@@ -1,5 +1,6 @@
 using dotnet.challenge.api.Models;
 using dotnet.challenge.api.Services;
+using dotnet.challenge.data.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dotnet.challenge.api.Controllers;
@@ -17,31 +18,32 @@ public class ReservationsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateReservation([FromBody] CreateReservationRequest request)
+    [ProducesResponseType(typeof(Reservation), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateReservation(
+        [FromBody] CreateReservationRequest request, CancellationToken cancellationToken)
     {
         var (result, reservation) = await _inventory.TryReserveAsync(
-            request.ProductId, request.Quantity, request.TtlSeconds);
+            request.ProductId!.Value, request.Quantity, request.TtlSeconds, cancellationToken);
 
-        switch (result)
+        return result switch
         {
-            case ReserveResult.Success:
-                return CreatedAtAction(nameof(GetReservation), new { id = reservation!.Id }, reservation);
-
-            case ReserveResult.ProductNotFound:
-                return NotFound(new { error = "Product not found." });
-
-            case ReserveResult.InsufficientStock:
-                return Ok(new { error = "Insufficient stock." });
-
-            default:
-                return StatusCode(StatusCodes.Status500InternalServerError);
-        }
+            ReserveResult.Success => CreatedAtAction(nameof(GetReservation), new { id = reservation!.Id }, reservation),
+            ReserveResult.ProductNotFound => NotFound(new { error = "Product not found." }),
+            // Defect #3: was 200 OK, so clients that check the status code saw a failed reservation as a success.
+            ReserveResult.InsufficientStock => Conflict(new { error = "Insufficient stock." }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetReservation(Guid id)
+    [ProducesResponseType(typeof(Reservation), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetReservation(Guid id, CancellationToken cancellationToken)
     {
-        var reservation = await _inventory.GetReservationAsync(id);
+        var reservation = await _inventory.GetReservationAsync(id, cancellationToken);
         if (reservation is null)
         {
             return NotFound();
@@ -50,13 +52,17 @@ public class ReservationsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/confirm")]
-    public async Task<IActionResult> Confirm(Guid id)
+    [ProducesResponseType(typeof(Reservation), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Confirm(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _inventory.ConfirmAsync(id);
+        var result = await _inventory.ConfirmAsync(id, cancellationToken);
         return result switch
         {
-            ConfirmResult.Success => Ok(),
-            ConfirmResult.AlreadyConfirmed => Ok(),
+            // Idempotent: a repeat confirm also returns 200, with the current reservation as the body.
+            ConfirmResult.Success or ConfirmResult.AlreadyConfirmed =>
+                Ok(await _inventory.GetReservationAsync(id, cancellationToken)),
             ConfirmResult.NotFound => NotFound(),
             ConfirmResult.IllegalState => Conflict(new { error = "Reservation is not in a confirmable state." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
@@ -64,13 +70,14 @@ public class ReservationsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Release(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Release(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _inventory.ReleaseAsync(id);
+        var result = await _inventory.ReleaseAsync(id, cancellationToken);
         return result switch
         {
-            ReleaseResult.Success => NoContent(),
-            ReleaseResult.AlreadyReleased => NoContent(),
+            ReleaseResult.Success or ReleaseResult.AlreadyReleased => NoContent(),
             ReleaseResult.NotFound => NotFound(),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };

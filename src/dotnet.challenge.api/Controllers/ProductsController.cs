@@ -1,5 +1,6 @@
 using dotnet.challenge.api.Models;
 using dotnet.challenge.api.Services;
+using dotnet.challenge.data.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dotnet.challenge.api.Controllers;
@@ -16,17 +17,22 @@ public class ProductsController : ControllerBase
         _inventory = inventory;
     }
 
+    // CancellationToken is bound to HttpContext.RequestAborted, so an abandoned request stops waiting.
     [HttpPost]
-    public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
+    [ProducesResponseType(typeof(Product), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request, CancellationToken cancellationToken)
     {
-        var product = await _inventory.CreateProductAsync(request.Name, request.Stock);
+        var product = await _inventory.CreateProductAsync(request.Name, request.Stock, cancellationToken);
         return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetProduct(Guid id)
+    [ProducesResponseType(typeof(Product), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProduct(Guid id, CancellationToken cancellationToken)
     {
-        var product = await _inventory.GetProductAsync(id);
+        var product = await _inventory.GetProductAsync(id, cancellationToken);
         if (product is null)
         {
             return NotFound();
