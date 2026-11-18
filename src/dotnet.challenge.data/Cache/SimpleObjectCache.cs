@@ -1,10 +1,18 @@
+using System.Collections.Concurrent;
+
 namespace dotnet.challenge.data.Cache;
 
+/// <summary>
+/// Thread-safe in-memory store. Individual operations are atomic; callers that need
+/// a read-modify-write across several operations must provide their own coordination.
+/// </summary>
 public class SimpleObjectCache<TKey, TValue> : ISimpleObjectCache<TKey, TValue>
     where TKey : struct
     where TValue : class
 {
-    private readonly Dictionary<TKey, TValue> _store = new();
+    // Defect #1: a plain Dictionary is not safe for concurrent writers; parallel inserts can corrupt
+    // its buckets (lost entries or infinite loops). ConcurrentDictionary makes each operation atomic.
+    private readonly ConcurrentDictionary<TKey, TValue> _store = new();
 
     public Task AddAsync(TKey key, TValue value)
     {
@@ -14,7 +22,7 @@ public class SimpleObjectCache<TKey, TValue> : ISimpleObjectCache<TKey, TValue>
 
     public Task DeleteAsync(TKey key)
     {
-        _store.Remove(key);
+        _store.TryRemove(key, out _);
         return Task.CompletedTask;
     }
 
@@ -32,9 +40,14 @@ public class SimpleObjectCache<TKey, TValue> : ISimpleObjectCache<TKey, TValue>
 
     public Task UpdateAsync(TKey key, TValue value)
     {
-        if (_store.ContainsKey(key))
+        // Update only if the key still exists, without resurrecting a concurrently deleted entry
+        // (a ContainsKey + indexer pair would be a check-then-act race).
+        while (_store.TryGetValue(key, out var existing))
         {
-            _store[key] = value;
+            if (_store.TryUpdate(key, value, existing))
+            {
+                break;
+            }
         }
         return Task.CompletedTask;
     }
